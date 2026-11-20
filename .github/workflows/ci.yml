@@ -19,6 +19,7 @@ jobs:
       cache-name: ani-778-lottie-scoped
       command: |
         set -eu
+        git fetch --depth=1 origin e1464e7eb1c240c33ee9b1bf3ac7cef578d53405
         git diff --exit-code e1464e7eb1c240c33ee9b1bf3ac7cef578d53405 HEAD -- . ':(exclude).github/workflows/ci.yml'
         cargo fmt -p anicraft-render -- --check
         cargo test --locked -p anicraft-render --lib
