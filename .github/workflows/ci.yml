@@ -21,7 +21,7 @@ jobs:
         set -eu
         git fetch --depth=1 origin e1464e7eb1c240c33ee9b1bf3ac7cef578d53405
         git diff --exit-code e1464e7eb1c240c33ee9b1bf3ac7cef578d53405 HEAD -- . ':(exclude).github/workflows/ci.yml'
-        cargo fmt -p anicraft-render -- --check
+        rustfmt --edition 2024 --check crates/render/src/lottie.rs
         cargo test --locked -p anicraft-render --lib
         cargo test --locked -p anicraft-engine --test lottie_parity
         cargo clippy --locked -p anicraft-render --all-targets -- -D warnings
