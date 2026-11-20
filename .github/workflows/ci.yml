@@ -19,8 +19,8 @@ jobs:
       cache-name: ani-778-lottie-scoped
       command: |
         set -eu
-        git fetch --depth=1 origin 2cd16209af7ed9a59b635c7ffce703d461040e03
-        git diff --exit-code 2cd16209af7ed9a59b635c7ffce703d461040e03 HEAD -- . ':(exclude).github/workflows/ci.yml'
+        git fetch --depth=1 origin 0cdf704bdf97506312ec497fa19cba0b2db5723e
+        git diff --exit-code 0cdf704bdf97506312ec497fa19cba0b2db5723e HEAD -- . ':(exclude).github/workflows/ci.yml'
         rustfmt --edition 2024 --check crates/engine/src/rich_text_tests.rs
         cargo test --locked -p anicraft-engine --lib svg_links_are_sanitized_and_round_trip_without_changing_the_drawing -- --nocapture
         cargo test --locked -p anicraft-engine --lib rich_text_tests
