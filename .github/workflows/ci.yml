@@ -1,5 +1,7 @@
 name: CI
 on:
+  push:
+    branches: [diag/778-lottie-ci-e1464e7e]
   workflow_dispatch:
 permissions:
   contents: read
