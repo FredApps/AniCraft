@@ -268,8 +268,7 @@ fn svg_links_are_sanitized_and_round_trip_without_changing_the_drawing() {
         // Use the real file-import command rather than duplicating its document mapping.
         let path = std::env::temp_dir().join(format!("anicraft-svg-link-roundtrip-{}-{index}.svg", std::process::id()));
         std::fs::write(&path, svg.as_bytes()).unwrap();
-        let mut back = anicraft_doc::Document::default();
-        back.stage = s.doc.stage;
+        let back = anicraft_doc::Document { stage: s.doc.stage, ..Default::default() };
         let mut imported = Session::new(back);
         let result = imported.execute("file.import", &json!({"path": path.display().to_string(), "x": 0, "y": 0}));
         std::fs::remove_file(&path).unwrap();
