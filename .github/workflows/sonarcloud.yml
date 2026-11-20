@@ -1,24 +1,35 @@
 name: SonarCloud
-
 on:
-  push:
-    branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened]
-
+  workflow_dispatch:
 permissions:
   contents: read
-
-concurrency:
-  group: sonarcloud-${{ github.ref }}
-  # A push to main is the run that publishes coverage; superseded runs there would never finish.
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
 jobs:
-  sonarcloud:
-    # Track shared CI improvements on main.
-    uses: storytold/craft-common-actions/.github/workflows/sonarcloud.yml@main
+  acceptance:
+    uses: storytold/craft-common-actions/.github/workflows/gate.yml@ecb64b2acb8731f0e2eb8f55fd2f45424bef75d0
     with:
-      timeout-minutes: 120
-      fonts-ref: b076417b5880bd4154bd22f00695b1d28c6bea83
-    secrets: inherit
+      os: '["ubuntu-24.04", "windows-latest"]'
+      timeout-minutes: 25
+      gate-timeout-minutes: 23
+      craft-fonts-ref: b076417b5880bd4154bd22f00695b1d28c6bea83
+      packages: libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libgtk-3-dev libasound2-dev
+      targets: ""
+      tools: ""
+      cache-name: ani-778-lottie-scoped
+      command: |
+        set -eu
+        git diff --exit-code e1464e7eb1c240c33ee9b1bf3ac7cef578d53405 HEAD -- . ':(exclude).github/workflows/sonarcloud.yml'
+        cargo fmt -p anicraft-render -- --check
+        cargo test --locked -p anicraft-render --lib
+        cargo test --locked -p anicraft-engine --test lottie_parity
+        cargo clippy --locked -p anicraft-render --all-targets -- -D warnings
+        python -c "from pathlib import Path; p=Path('crates/render/src/lottie.rs'); s=p.read_text(); a='t: crate::lottie_keys::r3(k.t)'; assert s.count(a)==1; p.write_text(s.replace(a, 't: k.t'))"
+        if cargo test --locked -p anicraft-render --lib shared_keys_keep_legacy_fractional_times_and_playback > regression-before.log 2>&1; then
+          cat regression-before.log
+          echo "Regression did not fail with the timestamp fix reverted"
+          exit 1
+        fi
+        cat regression-before.log
+        grep -q 'shared_keys_keep_legacy_fractional_times_and_playback ... FAILED' regression-before.log
+        git checkout HEAD -- crates/render/src/lottie.rs
+        cargo test --locked -p anicraft-render --lib shared_keys_keep_legacy_fractional_times_and_playback
+        git diff --exit-code e1464e7eb1c240c33ee9b1bf3ac7cef578d53405 HEAD -- . ':(exclude).github/workflows/sonarcloud.yml'
