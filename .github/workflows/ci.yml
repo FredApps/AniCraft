@@ -1,53 +1,27 @@
 name: CI
-
-# Quality gates for every push to main and every pull request, through the
-# suite's shared gate workflow in craft-common-actions.
 on:
   push:
-    branches: [main]
-  pull_request:
+    branches: [diag/778-svg-link-parity]
   workflow_dispatch:
-
 permissions:
   contents: read
-
-# A newer push to a PR branch cancels its older run; every push to main runs to the end.
-concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
-  gate:
-    # Tracks @main so suite-wide CI fixes reach every app without a PR in each repository.
-    uses: storytold/craft-common-actions/.github/workflows/gate.yml@main
+  acceptance:
+    uses: storytold/craft-common-actions/.github/workflows/gate.yml@ecb64b2acb8731f0e2eb8f55fd2f45424bef75d0
     with:
-      # Same craft-fonts commit as release.yml.
+      os: '["ubuntu-24.04","windows-latest"]'
+      timeout-minutes: 25
+      gate-timeout-minutes: 23
       craft-fonts-ref: b076417b5880bd4154bd22f00695b1d28c6bea83
-      # mesa-vulkan-drivers: lavapipe, a software Vulkan adapter, so the GPU stage's parity
-      # tests run against the CPU oracle on runners without a graphics card (ADR 0031).
-      # ffmpeg: the video import and export tests make and read a tiny film with it (ADR 0116);
-      # it is a tool on the runner, never part of what is built or shipped. Where there is no
-      # ffmpeg (the macOS and Windows legs) those tests say so and pass.
-      packages: >-
-        libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
-        libgtk-3-dev libasound2-dev mesa-vulkan-drivers ffmpeg
-      command: cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings
-
-  # The licence policy (deny.toml, docs/legal/compliance.md): the shared gate doesn't run
-  # cargo-deny, so AniCraft checks its own dependency licences, bans and sources here.
-  licenses:
-    timeout-minutes: 20
-    name: Licences, bans and sources (cargo deny)
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Harden runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Install cargo-deny
-        run: cargo install cargo-deny --locked --version 0.20.2
-      - name: Check licences, bans and sources
-        run: cargo deny --locked check licenses bans sources
+      packages: libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libgtk-3-dev libasound2-dev
+      targets: ""
+      tools: ""
+      cache-name: ani-778-lottie-scoped
+      command: |
+        set -eu
+        git fetch --depth=1 origin 2cd16209af7ed9a59b635c7ffce703d461040e03
+        git diff --exit-code 2cd16209af7ed9a59b635c7ffce703d461040e03 HEAD -- . ':(exclude).github/workflows/ci.yml'
+        rustfmt --edition 2024 --check crates/engine/src/rich_text_tests.rs
+        cargo test --locked -p anicraft-engine --lib svg_links_are_sanitized_and_round_trip_without_changing_the_drawing -- --nocapture
+        cargo test --locked -p anicraft-engine --lib rich_text_tests
+        cargo clippy --locked -p anicraft-engine --lib --tests -- -D warnings
