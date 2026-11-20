@@ -9,7 +9,7 @@ jobs:
   acceptance:
     uses: storytold/craft-common-actions/.github/workflows/gate.yml@ecb64b2acb8731f0e2eb8f55fd2f45424bef75d0
     with:
-      os: '["ubuntu-24.04", "windows-latest"]'
+      os: '["macos-latest"]'
       timeout-minutes: 25
       gate-timeout-minutes: 23
       craft-fonts-ref: b076417b5880bd4154bd22f00695b1d28c6bea83
@@ -36,3 +36,18 @@ jobs:
         git checkout HEAD -- crates/render/src/lottie.rs
         cargo test --locked -p anicraft-render --lib shared_keys_keep_legacy_fractional_times_and_playback
         git diff --exit-code e1464e7eb1c240c33ee9b1bf3ac7cef578d53405 HEAD -- . ':(exclude).github/workflows/ci.yml'
+  licenses:
+    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked --version 0.20.2
+      - name: Check licences, bans and sources
+        run: cargo deny --locked check licenses bans sources
